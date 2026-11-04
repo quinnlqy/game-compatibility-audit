@@ -1,3 +1,4 @@
 interface:
-  display_name: "游戏界面与设备适配检查"
-  short_description: "检查游戏窗口、安全区、PC模拟器与手机交互，区分模拟通过和真机验收"
+  display_name: "游戏兼容性审计"
+  short_description: "检查跨游戏布局、输入、旧内核、渲染与存档，区分模拟结果和真机验收"
+  default_prompt: "使用 $game-compatibility-audit 检查当前游戏的界面与设备兼容性，按影响排序，分别报告实际包验证与真机待验项；先检查，不改代码。"
