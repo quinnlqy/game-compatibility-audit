@@ -4,6 +4,8 @@
 
 本版合并原仓库的跨设备审计流程与`mobile-game-compat-audit`的手机H5回归经验：一个入口，49项按需选用的稳定编号检查、历史案例边界及可选产物/证据工具。保留原35项编号并新增14项；不把具体机型、游戏玩法或本地机器路径作为通用要求。
 
+新增指定界面批量采集：自动生成常见尺寸、CSS断点边界和可选范围扫描，逐尺寸截图，输出离线HTML画廊、尺寸CSV及候选问题报告。浏览器工具独立于被测游戏，不要求每个项目重复编写截图程序。
+
 适用于 H5、WebView、Canvas／WebGL 游戏，也可按实际引擎选用界面坐标、裁切、输入和生命周期检查。不依赖特定项目、账号或平台 SDK。
 
 ## 安装最新版到另一台电脑
@@ -39,9 +41,17 @@ https://github.com/quinnlqy/game-compatibility-audit/tree/main/skills/game-compa
 
 手动更新时同样先保留旧目录，再用新版完整文件夹替换；不要只覆盖部分文件而留下旧脚本。若仍保留旧的`mobile-game-compat-audit`，确认没有本机自定义内容后可将其备份到skills目录之外，统一使用`game-compatibility-audit`。
 
-当前合并版可通过`references/regressions.json`的`revision: 2026-11-04.1`及49个唯一条目识别。后续更新以远端实际提交与清单为准，不能只按目录名判断是否最新。
+回归清单版本为`references/regressions.json`的`revision: 2026-11-04.1`及49个唯一条目；这不是整个skill的功能版本号。新增截图功能应同时包含`scripts/screen-audit.mjs`及其模块、`references/screen-capture.md`。更新以远端实际提交与文件完整性为准，不能只按目录名或清单版本判断是否最新。
 
 ## 使用示例
+
+指定界面出多尺寸截图：
+
+```text
+使用 $game-compatibility-audit 检查这个游戏的订单界面。自动生成常见屏幕与布局断点边界的尺寸矩阵，批量截图，输出可筛选的HTML总览、尺寸清单和问题报告。只打开界面，不接单或购买；候选问题和人工确认分别说明。
+```
+
+执行方法和配置见[界面批量采集说明](skills/game-compatibility-audit/references/screen-capture.md)。它采样CSS可用区域，不列虚构机型，也不声称穷尽连续变化的全部尺寸。
 
 全面检查：
 
@@ -90,12 +100,17 @@ skills/game-compatibility-audit/
 │   ├── evidence-and-report.md
 │   ├── regressions.json
 │   ├── device-evidence.md
+│   ├── screen-capture.md
 │   └── execution.md
 └── scripts/
     ├── artifact_snapshot.py
     ├── init_audit.py
     ├── validate_audit.py
-    └── capability-fixtures.mjs
+    ├── capability-fixtures.mjs
+    ├── screen-audit.mjs
+    ├── screen-matrix.mjs
+    ├── screen-probe.mjs
+    └── screen-report.mjs
 ```
 
 ## 可选移动H5包审计工具
@@ -120,5 +135,7 @@ python <skill>/scripts/validate_audit.py <evidence-dir>/audit.json --allow-incom
 2026-11-04合并版通过skill结构与内部引用检查、49项编号完整性、17项工具正反例及8组Edge浏览器夹具测试（包括真实像素对照）。独立前向评估发现的真机门禁参数冲突已修复，并加入回归。上述是skill及工具验证，不是游戏或手机验收；尚未据此对多个独立游戏完成系统性实机验证。
 
 维护者可用标准库运行`python -B -m unittest discover -s tests -v`。浏览器夹具使用项目已安装的Playwright；通过`PLAYWRIGHT_MODULE`指定其`index.mjs`，必要时以`BROWSER_CHANNEL`指定已有浏览器，再运行`node tests/browser-fixtures.mjs`。测试不触碰真实游戏、存档或账号。
+
+屏幕采集扩展另通过6项尺寸生成测试与9组端到端检查，涵盖实际离线画廊、缺viewport meta、祖先透明、跨轴裁切、极小滚动区与失败证据保留；独立复核的4项发现已修复并复测。可运行`node --test tests/screen-matrix.test.mjs`及`node tests/screen-runner.mjs`（后者沿用上述Playwright环境）。实际游戏验证用《一小块甜》的交付包订单界面生成56组/56张截图，自动候选与人工看图分别记录；样例包与游戏素材不加入本skill仓库。
 
 静态检查、桌面浏览器模拟、平台运行代码本地镜像、实际 PC 模拟器和真机结果分别记录。使用此 skill 不代表自动拥有设备访问能力，也不代表游戏已兼容全部手机或通过平台审核。
