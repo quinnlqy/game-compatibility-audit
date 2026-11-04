@@ -6,6 +6,8 @@
 
 新增指定界面批量采集：自动生成常见尺寸、CSS断点边界和可选范围扫描，逐尺寸截图，输出离线HTML画廊、尺寸CSV及候选问题报告。浏览器工具独立于被测游戏，不要求每个项目重复编写截图程序。
 
+截图按手机竖屏、手机横屏、平板、电脑、边界测试分组，采样来源、输入方式和像素倍率使用中文标签。断点样本会明确标成边界测试，避免被误认为具体手机。已有报告可保留截图并刷新分组。
+
 适用于 H5、WebView、Canvas／WebGL 游戏，也可按实际引擎选用界面坐标、裁切、输入和生命周期检查。不依赖特定项目、账号或平台 SDK。
 
 ## 安装最新版到另一台电脑
@@ -110,6 +112,7 @@ skills/game-compatibility-audit/
     ├── screen-audit.mjs
     ├── screen-matrix.mjs
     ├── screen-probe.mjs
+    ├── screen-gallery.mjs
     └── screen-report.mjs
 ```
 
@@ -136,6 +139,6 @@ python <skill>/scripts/validate_audit.py <evidence-dir>/audit.json --allow-incom
 
 维护者可用标准库运行`python -B -m unittest discover -s tests -v`。浏览器夹具使用项目已安装的Playwright；通过`PLAYWRIGHT_MODULE`指定其`index.mjs`，必要时以`BROWSER_CHANNEL`指定已有浏览器，再运行`node tests/browser-fixtures.mjs`。测试不触碰真实游戏、存档或账号。
 
-屏幕采集扩展另通过6项尺寸生成测试与9组端到端检查，涵盖实际离线画廊、缺viewport meta、祖先透明、跨轴裁切、极小滚动区与失败证据保留；独立复核的4项发现已修复并复测。可运行`node --test tests/screen-matrix.test.mjs`及`node tests/screen-runner.mjs`（后者沿用上述Playwright环境）。实际游戏验证用《一小块甜》的交付包订单界面生成56组/56张截图，自动候选与人工看图分别记录；样例包与游戏素材不加入本skill仓库。
+屏幕采集扩展通过9项尺寸/分组测试与9组端到端检查，涵盖中文分组、旧报告刷新、实际离线画廊、缺viewport meta、祖先透明、跨轴裁切、极小滚动区与失败证据保留；独立复核的4项发现已修复并复测。可运行`node --test tests/screen-matrix.test.mjs`及`node tests/screen-runner.mjs`（后者沿用上述Playwright环境）。实际游戏验证用《一小块甜》的交付包订单界面生成56组/56张截图，自动候选与人工看图分别记录；样例包与游戏素材不加入本skill仓库。
 
 静态检查、桌面浏览器模拟、平台运行代码本地镜像、实际 PC 模拟器和真机结果分别记录。使用此 skill 不代表自动拥有设备访问能力，也不代表游戏已兼容全部手机或通过平台审核。

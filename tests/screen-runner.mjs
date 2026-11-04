@@ -70,6 +70,14 @@ try{
   await page.goto(pathToFileURL(path.join(bad.out,'index.html')).href);
   await page.locator('.card').first().waitFor({timeout:5000});
   assert.equal(await page.locator('.card').count(),2);
+  assert.equal(await page.locator('[data-group]').count(),6);
+  assert.ok(await page.locator('[data-group="boundary"]').textContent().then(text=>text.includes('边界测试')));
+  const sublabels=await page.locator('.sub').allTextContents();
+  assert.ok(sublabels.every(text=>!/(?:touch|mouse|breakpoint|common|explicit|DPR)/.test(text)),sublabels.join('\n'));
+  await page.locator('[data-group="phone-portrait"]').click();
+  assert.equal(await page.locator('.card').count(),0);
+  await page.locator('[data-group="boundary"]').click();
+  assert.equal(await page.locator('.card').count(),2);
   await page.locator('#state').selectOption('candidate');
   await page.locator('[data-i]').first().click();
   assert.equal(await page.locator('#preview').evaluate(node=>node.open),true);

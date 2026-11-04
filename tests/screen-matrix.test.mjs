@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildMatrix,extractBreakpoints} from '../skills/game-compatibility-audit/scripts/screen-matrix.mjs';
+import {buildMatrix,extractBreakpoints,describeSample,SCREEN_GROUPS} from '../skills/game-compatibility-audit/scripts/screen-matrix.mjs';
 
 test('common matrix is finite and keeps input separate from dimensions',()=>{
   const result=buildMatrix();assert.equal(result.cases.length,15);
@@ -33,4 +33,27 @@ test('rejects empty, inverted or unbounded sweeps and invalid metadata',()=>{
   assert.throws(()=>buildMatrix({bounds:{minWidth:1000,maxWidth:320}}),/increasing/);
   assert.throws(()=>buildMatrix({common:false,sizes:[{width:400,height:600,input:'device-guess'}]}),/Invalid/);
   assert.throws(()=>buildMatrix({maxCases:10000}),/maxCases/);
+});
+test('five Chinese groups classify known presets without guessing unknown devices',()=>{
+  const result=buildMatrix();
+  const counts=Object.fromEntries(SCREEN_GROUPS.map(group=>[group.id,result.cases.filter(row=>row.group===group.id).length]));
+  assert.deepEqual(Object.values(counts),[5,3,5,2,0]);
+  assert.ok(result.cases.every(row=>/[\u4e00-\u9fff]/.test(row.label)&&row.displayReasons[0]==='常见尺寸'));
+  assert.equal(describeSample({width:812,height:593,input:'mouse',reasons:['explicit']}).group,'boundary');
+  assert.equal(describeSample({width:812,height:593,input:'mouse',group:'desktop',reasons:['explicit']}).group,'desktop');
+  assert.throws(()=>describeSample({group:'imaginary-model'}),/Unknown screen group/);
+});
+test('boundary origins stay separate even when dimensions match a tablet preset',()=>{
+  const boundary=describeSample({width:1024,height:768,input:'touch',label:'1024×768',reasons:['height breakpoint 768px +0']});
+  assert.equal(boundary.group,'boundary');assert.equal(boundary.label,'高度边界样本');
+  assert.equal(boundary.displayReasons[0],'高度切换点 768像素（临界值）');
+  const explicit=describeSample({width:1024,height:768,input:'touch',reasons:['explicit']});
+  assert.equal(explicit.group,'tablet');
+});
+test('old report labels upgrade without changing measurements or source reasons',()=>{
+  const old={id:'320x568-touch-1',width:320,height:568,input:'touch',dpr:1,label:'phone-small',reasons:['common','height breakpoint 568px -1']};
+  const updated=describeSample(old);
+  for(const key of ['id','width','height','input','dpr'])assert.equal(updated[key],old[key]);
+  assert.deepEqual(updated.reasons,old.reasons);assert.equal(updated.groupLabel,'手机竖屏');
+  assert.deepEqual(updated.displayReasons,['常见尺寸','高度切换点 568像素（前1像素）']);
 });

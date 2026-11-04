@@ -23,7 +23,7 @@
     "boundaries": true,
     "maxCases": 60,
     "bounds": {"minWidth": 320, "maxWidth": 1920, "minHeight": 300, "maxHeight": 1280},
-    "sizes": [{"width": 390, "height": 844, "input": "touch", "dpr": 2}]
+    "sizes": [{"width": 390, "height": 844, "input": "touch", "dpr": 2, "group": "phone-portrait"}]
   },
   "screens": [{
     "id": "shop",
@@ -67,6 +67,12 @@ node <skill>/scripts/screen-audit.mjs --config <screen.json> --out <new-report-d
 
 `boundaryWidth/boundaryHeight/boundaryInput/dpr`可按项目修改。宽高、输入和DPR共同去重；桌面鼠标、手机触摸和大屏触控是不同条件。默认60组上限，可显式调整`maxCases`（最多1000）。达到上限后，其余候选列为`deferred`，不能删掉后宣称全覆盖。范围外尺寸也保留原因；显式请求超出bounds会报错，需先调整支持范围。
 
+### 中文分组与标签
+
+报告固定按**手机竖屏、手机横屏、平板、电脑、边界测试**排列，可切换分组并与候选状态/横竖屏筛选组合使用。每组有数量和用途说明；标签显示“触摸/鼠标”“像素倍率”“常见尺寸/指定尺寸”“高度切换点450像素（前1像素）”等中文。CSV列名和文字报告也按中文分组，JSON保留原始编号、来源和技术证据。
+
+分组依据预设或显式配置，不单凭横竖比例猜机型：常见预设已有分类；自动断点和范围扫描归“边界测试”。指定尺寸可设置`group`为`phone-portrait/phone-landscape/tablet/desktop/boundary`。未指定分组时，仅匹配已知参考预设；其他自定义尺寸放边界组并说明来源，不假称真实手机。一个样本有多个来源时保持主分类，并展示全部来源；去重不改变实际采集数量。自定义label保持用户原文。
+
 仅生成计划：加`--matrix-only`，输出`matrix.json`，不启动浏览器、不截图；只能从配置和CSS文件发现边界，不能替代运行时CSS发现。
 
 ## 自动检查什么
@@ -85,7 +91,7 @@ node <skill>/scripts/screen-audit.mjs --config <screen.json> --out <new-report-d
 
 ## 输出与验收
 
-- `index.html`：离线截图画廊，按界面、方向和候选状态筛选，放大与前后对比。
+- `index.html`：离线截图画廊，按五类屏幕分组，并按界面、方向和候选状态筛选，放大与前后对比。
 - `screenshots/*.png`：逐尺寸完整视口截图；失败尽量保留现场。
 - `matrix.csv`：尺寸、输入、DPR、来源、采集状态与截图路径。
 - `issues.csv`：逐条候选问题。
@@ -94,3 +100,11 @@ node <skill>/scripts/screen-audit.mjs --config <screen.json> --out <new-report-d
 页面运行错误/资源异常列候选，导航/就绪/截图失败列`error`；有执行失败则退出码2。0只代表本次采集执行完成，不表示没有候选或游戏通过适配。没有候选也只写“未见自动候选”，不写“全部通过”。HTML可直接打开，分享时必须带上整个报告目录，不只拷贝index.html。
 
 完成后至少实际查看一张小竖屏、一张短横屏、一张平板与候选问题截图，并检查画廊能打开图片。将人工确认、自动候选和真机待验分别交付；不要把工具生成的列表冒充人工看过全部图片。
+
+已有报告只改分组/中文展示时，无需重跑游戏或截图：
+
+```text
+node <skill>/scripts/screen-report.mjs --refresh <existing-report-dir>/report.json
+```
+
+该命令先备份原有HTML/JSON/CSV/文字报告到同目录的`report-backups/`，再刷新展示。截图、测量、输入、DPR和原始问题证据不变；不要把展示刷新称为新一轮游戏回归。

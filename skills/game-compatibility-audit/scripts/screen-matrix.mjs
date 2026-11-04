@@ -9,6 +9,63 @@ export const COMMON_SIZES = [
   [1280,720,'desktop-compact','mouse'],[1920,1080,'desktop-wide','mouse'],
 ];
 
+export const SCREEN_GROUPS = [
+  {id:'phone-portrait',label:'手机竖屏',note:'手机竖向参考视口，不对应某个具体型号。'},
+  {id:'phone-landscape',label:'手机横屏',note:'手机横向参考视口，包含可用高度较短的场景。'},
+  {id:'tablet',label:'平板',note:'平板参考视口，横竖屏都在本组。'},
+  {id:'desktop',label:'电脑',note:'电脑窗口参考视口，输入方式单独标注。'},
+  {id:'boundary',label:'边界测试',note:'布局切换点和自定义范围采样，不代表某款手机或平板。'},
+];
+const PRESET_LABELS = {
+  'phone-small':['phone-portrait','小尺寸手机竖屏'],
+  'phone-compact':['phone-portrait','紧凑手机竖屏'],
+  'phone-medium':['phone-portrait','常规手机竖屏'],
+  'phone-tall':['phone-portrait','长屏手机竖屏'],
+  'phone-wide':['phone-portrait','宽屏手机竖屏'],
+  'landscape-short':['phone-landscape','短屏手机横屏'],
+  'landscape-phone':['phone-landscape','常规手机横屏'],
+  'landscape-very-short':['phone-landscape','极短手机横屏'],
+  'tablet-portrait':['tablet','平板竖屏'],
+  'tablet-landscape':['tablet','平板横屏'],
+  'tablet-tall':['tablet','长屏平板竖屏'],
+  'tablet-wide':['tablet','宽屏平板横屏'],
+  'tablet-large':['tablet','大尺寸平板横屏'],
+  'desktop-compact':['desktop','紧凑电脑窗口'],
+  'desktop-wide':['desktop','宽屏电脑窗口'],
+};
+
+export function chineseReason(reason) {
+  if(reason==='common')return '常见尺寸';
+  if(reason==='explicit')return '指定尺寸';
+  if(reason==='range sweep')return '范围扫描';
+  const match=/^(width|height) breakpoint ([\d.]+)px ([+-]\d+)$/.exec(reason);
+  if(match){
+    const offset=Number(match[3]);
+    return `${match[1]==='width'?'宽度':'高度'}切换点 ${match[2]}像素（${offset===0?'临界值':offset<0?'前'+Math.abs(offset)+'像素':'后'+offset+'像素'}）`;
+  }
+  return '其他采样来源';
+}
+
+/** Group by declared source/preset, never by screen shape alone. Works with old reports. */
+export function describeSample(sample) {
+  const reasons=sample.reasons||(sample.reason?[sample.reason]:[]);
+  const preset=PRESET_LABELS[sample.label] ? sample.label :
+    reasons.some(reason=>reason==='common'||reason==='explicit')
+      ? COMMON_SIZES.find(([w,h,,input])=>w===sample.width&&h===sample.height&&input===(sample.input||'touch'))?.[2] : null;
+  const declared=SCREEN_GROUPS.find(group=>group.id===sample.group);
+  if(sample.group&&!declared)throw new Error(`Unknown screen group: ${sample.group}`);
+  const group=declared||SCREEN_GROUPS.find(group=>group.id===(preset?PRESET_LABELS[preset][0]:'boundary'));
+  let label=sample.label;
+  if(PRESET_LABELS[label])label=PRESET_LABELS[label][1];
+  if(!label||/^\d+[×x]\d+$/.test(label))label=group.id==='boundary'
+    ? reasons.some(reason=>reason.startsWith('height breakpoint'))?'高度边界样本'
+      :reasons.some(reason=>reason.startsWith('width breakpoint'))?'宽度边界样本':'自定义尺寸采样'
+    :group.label+'参考尺寸';
+  return {...sample,group:group.id,groupLabel:group.label,label,
+    inputLabel:sample.input==='mouse'?'鼠标':'触摸',
+    displayReasons:reasons.map(chineseReason)};
+}
+
 export function extractBreakpoints(conditions = []) {
   const found = new Map(), unsupported = new Set();
   for (const condition of conditions) {
@@ -61,7 +118,8 @@ export function buildMatrix(options = {}, conditions = []) {
     }
     const key = `${width}x${height}-${input}-${dpr}`;
     if (candidates.has(key)) candidates.get(key).reasons.push(reason);
-    else candidates.set(key, {id:key,width,height,input,dpr,reasons:[reason],label:sample.label || `${width}×${height}`});
+    else candidates.set(key, {id:key,width,height,input,dpr,reasons:[reason],label:sample.label || `${width}×${height}`,
+      ...(sample.group?{group:sample.group}:{})});
   };
   for (const sample of options.sizes || []) add(sample, 'explicit', true);
   if (options.common !== false) for (const [width,height,label,input] of COMMON_SIZES)
@@ -91,9 +149,9 @@ export function buildMatrix(options = {}, conditions = []) {
     if (ws.length*hs.length > 10000) throw new Error('Sweep exceeds 10000 candidate sizes');
     for (const width of ws) for (const height of hs) add({width,height,dpr:options.dpr ?? 1},'range sweep');
   }
-  const all = [...candidates.values()];
+  const all = [...candidates.values()].map(describeSample);
   if (!all.length) throw new Error('Matrix contains no viewport samples');
   return {cases:all.slice(0,maxCases),deferred:all.slice(maxCases),outsideBounds:outside,
     ...parsed,bounds,maxCases,candidateCount:all.length,
-    coverage:'Finite CSS viewport samples and one-axis breakpoint neighbours; not every width-height combination or real-device certification.'};
+    coverage:'有限视口采样和单轴布局边界检查，未穷尽全部宽高组合，也不代表真实设备验收。'};
 }
