@@ -43,7 +43,7 @@ https://github.com/quinnlqy/game-compatibility-audit/tree/main/skills/game-compa
 
 手动更新时同样先保留旧目录，再用新版完整文件夹替换；不要只覆盖部分文件而留下旧脚本。若仍保留旧的`mobile-game-compat-audit`，确认没有本机自定义内容后可将其备份到skills目录之外，统一使用`game-compatibility-audit`。
 
-回归清单版本为`references/regressions.json`的`revision: 2026-11-04.1`及49个唯一条目；这不是整个skill的功能版本号。新增截图功能应同时包含`scripts/screen-audit.mjs`及其模块、`references/screen-capture.md`。更新以远端实际提交与文件完整性为准，不能只按目录名或清单版本判断是否最新。
+回归清单版本为`references/regressions.json`的`revision: 2026-11-05.1`及49个唯一条目；这不是整个skill的功能版本号。新增截图功能应同时包含`scripts/screen-audit.mjs`及其模块、`references/screen-capture.md`。更新以远端实际提交与文件完整性为准，不能只按目录名或清单版本判断是否最新。
 
 ## 使用示例
 
@@ -101,10 +101,12 @@ skills/game-compatibility-audit/
 │   ├── check-matrix.md
 │   ├── evidence-and-report.md
 │   ├── regressions.json
+│   ├── review-regressions.md
 │   ├── device-evidence.md
 │   ├── screen-capture.md
 │   └── execution.md
 └── scripts/
+    ├── check_resource_paths.py
     ├── artifact_snapshot.py
     ├── init_audit.py
     ├── validate_audit.py
@@ -127,6 +129,10 @@ python <skill>/scripts/validate_audit.py <evidence-dir>/audit.json --allow-incom
 
 不传`--case`生成49项全量计划；传入则生成专项并自动保留P03产物检查。计划默认未测试，`--allow-incomplete`只接受诚实待验，不能掩盖错哈希、漏项或无效证据。Python工具只用标准库，使用当前机器约定的解释器；浏览器夹具使用项目已有自动化环境，且只注入隔离测试上下文。
 
+新增只读资源路径检查：`python <skill>/scripts/check_resource_paths.py <actual.zip-or-build-dir>`。按ZIP/目录真实名称精确比较HTML/CSS引用，区分大小写错误、缺失和需人工解析的路径；不依赖Windows文件存在判断，也不替代动态资源与交互检查。执行范围和退出码见`references/execution.md`。
+
+2026-11-05补充了[重复拒审排查案例](skills/game-compatibility-audit/references/review-regressions.md)：通过版/首次拒审版对照、原始引用在宿主预处理阶段失败、模拟SDK与预热掩盖错误、鼠标转触摸及用户过审反馈的证据边界。49个编号保持不变。
+
 ## 合并说明
 
 两份经验的结论一致：基于实际可用区域和能力检查、分别验证输入方式、保护存档、绑定实际包与证据，不将模拟结果冒充真机。原仓库对PC模拟器、长按与补发事件、资源映射及原生界面更细；手机H5经验补充旧接口启动、动态安全区、跨区工具、尺寸循环、材质与可靠提交。案例及原始基线见`references/device-evidence.md`。
@@ -140,5 +146,7 @@ python <skill>/scripts/validate_audit.py <evidence-dir>/audit.json --allow-incom
 维护者可用标准库运行`python -B -m unittest discover -s tests -v`。浏览器夹具使用项目已安装的Playwright；通过`PLAYWRIGHT_MODULE`指定其`index.mjs`，必要时以`BROWSER_CHANNEL`指定已有浏览器，再运行`node tests/browser-fixtures.mjs`。测试不触碰真实游戏、存档或账号。
 
 屏幕采集扩展通过9项尺寸/分组测试与9组端到端检查，涵盖中文分组、旧报告刷新、实际离线画廊、缺viewport meta、祖先透明、跨轴裁切、极小滚动区与失败证据保留；独立复核的4项发现已修复并复测。可运行`node --test tests/screen-matrix.test.mjs`及`node tests/screen-runner.mjs`（后者沿用上述Playwright环境）。实际游戏验证用《一小块甜》的交付包订单界面生成56组/56张截图，自动候选与人工看图分别记录；样例包与游戏素材不加入本skill仓库。
+
+2026-11-05资源路径扩展通过26项Python工具测试（含9项新增资源路径正反例）、9项既有尺寸测试、skill结构及内部引用检查；另对实际旧交付ZIP与通过反馈对应的新ZIP各检查61条静态引用，旧包精确报出1条大小写错误，新包0错误。游戏包和原始日志不加入此仓库。
 
 静态检查、桌面浏览器模拟、平台运行代码本地镜像、实际 PC 模拟器和真机结果分别记录。使用此 skill 不代表自动拥有设备访问能力，也不代表游戏已兼容全部手机或通过平台审核。
